@@ -93,10 +93,14 @@ export default function TradeDetail() {
 
   useEffect(() => {
    axios.get(`/api/trades/${id}`)
-      .then(r => setTrade(r.data))
+      .then(r => {
+        if (r.data && typeof r.data === 'object' && !Array.isArray(r.data)) {
+          setTrade(r.data);
+        }
+      })
       .catch(() => {});
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 10000);
     return () => clearInterval(interval);
   }, [id]);
 
