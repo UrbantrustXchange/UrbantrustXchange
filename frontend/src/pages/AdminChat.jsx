@@ -17,12 +17,12 @@ export default function AdminChat() {
   const bottomRef = useRef(null);
 
   const fetchMessages = () =>
-    axios.get(`http://localhost:5000/api/chat/${id}`)
+    axios.get(`https://urbantrustxchange.onrender.com/api/chat/${id}`)
       .then(r => setMessages(r.data))
       .catch(() => {});
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/admin/trades/${id}`)
+    axios.get(`https://urbantrustxchange.onrender.com/api/admin/trades/${id}`)
       .then(r => setTrade(r.data))
       .catch(() => {});
     fetchMessages();
@@ -41,7 +41,7 @@ export default function AdminChat() {
       const fd = new FormData();
       if (text.trim()) fd.append('message', text.trim());
       if (image) fd.append('image', image);
-      await axios.post(`http://localhost:5000/api/chat/${id}`, fd, {
+      await axios.post(`https://urbantrustxchange.onrender.com/api/chat/${id}`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setText('');
@@ -93,7 +93,7 @@ export default function AdminChat() {
           <div>
             <p className="text-xs font-medium text-gray-400 mb-1.5">Payment proof</p>
             <img
-              src={`http://localhost:5000${trade.image_url}`}
+              src={`https://urbantrustxchange.onrender.com${trade.image_url}`}
               alt="Trade proof"
               className="w-full rounded-xl object-contain max-h-48 border border-orange-100"
             />
@@ -154,7 +154,7 @@ export default function AdminChat() {
                     }}>
                     {m.message && <p>{m.message}</p>}
                     {m.image_url && (
-                      <img src={`http://localhost:5000${m.image_url}`}
+                      <img src={`https://urbantrustxchange.onrender.com${m.image_url}`}
                         alt="attachment" className="mt-1.5 rounded-lg max-w-full" />
                     )}
                   </div>

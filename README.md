@@ -99,9 +99,8 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-- Backend: http://localhost:5000
-- Frontend: http://localhost:5173
-
+- Backend:  https://urbantrustxchange.onrender.com
+- Frontend:  https://urbantrustxchange.onrender.com
 ---
 
 ## Production Deployment (Render.com — Recommended)

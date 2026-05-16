@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+axios.defaults.baseURL = 'https://urbantrustxchange.onrender.com';
 
 const AuthContext = createContext(null);
 

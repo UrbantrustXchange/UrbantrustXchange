@@ -84,12 +84,12 @@ export default function TradeDetail() {
     useCountdown(TRADE_DURATION);
 
   const fetchMessages = () =>
-    axios.get(`http://localhost:5000/api/trades/${id}`)
+    axios.get(`/api/chat/${id}`)
       .then(r => setMessages(r.data))
       .catch(() => {});
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/trades/${id}`)
+   axios.get(`/api/trades/${id}`)
       .then(r => setTrade(r.data))
       .catch(() => {});
     fetchMessages();
@@ -117,7 +117,7 @@ export default function TradeDetail() {
       const fd = new FormData();
       if (text.trim()) fd.append('message', text.trim());
       if (image) fd.append('image', image);
-      await axios.post(`http://localhost:5000/api/chat/${id}`, fd, {
+      await axios.post(`/api/chat/${id}`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setText('');
@@ -136,7 +136,7 @@ export default function TradeDetail() {
     setDisputeError('');
     setDisputeLoading(true);
     try {
-      await axios.post(`http://localhost:5000/api/trades/${id}/dispute`, {
+      await axios.post(`/api/trades/${id}/dispute`, {
         reason: disputeText.trim(),
       });
       setDisputeSubmitted(true);
@@ -435,7 +435,7 @@ export default function TradeDetail() {
                 Proof of payment
               </p>
               <img
-                src={`http://localhost:5000${trade.image_url}`}
+                src={`https://urbantrustxchange.onrender.com${trade.image_url}`}
                 alt="Trade proof"
                 className="w-full rounded-xl object-contain max-h-48"
                 style={{ border: '1px solid #ffedd5', background: '#fffbf7' }}
@@ -536,7 +536,7 @@ export default function TradeDetail() {
                     {m.message && <p>{m.message}</p>}
                     {m.image_url && (
                       <img
-                        src={m.image_url}
+                        src={`https://urbantrustxchange.onrender.com${m.image_url}`}
                         alt="attachment"
                         className="mt-1.5 rounded-lg max-w-full"
                       />

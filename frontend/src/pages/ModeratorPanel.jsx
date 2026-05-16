@@ -25,7 +25,7 @@ function ChatPanel({ trade, onClose }) {
   const bottomRef = useRef(null);
 
   const fetchMessages = useCallback(() =>
-    axios.get(`http://localhost:5000/api/chat/${trade._id}`)
+    axios.get(`https://urbantrustxchange.onrender.com/api/chat/${trade._id}`)
       .then(r => setMessages(r.data))
       .catch(() => {}), [trade._id]);
 
@@ -46,7 +46,7 @@ function ChatPanel({ trade, onClose }) {
       const fd = new FormData();
       if (text.trim()) fd.append('message', text.trim());
       if (image) fd.append('image', image);
-      await axios.post(`http://localhost:5000/api/chat/${trade._id}`, fd, {
+      await axios.post(`https://urbantrustxchange.onrender.com/api/chat/${trade._id}`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setText('');
@@ -99,7 +99,7 @@ function ChatPanel({ trade, onClose }) {
         {trade.image_url && (
           <div className="px-5 pt-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Payment Proof</p>
-            <img src={`http://localhost:5000${trade.image_url}`}
+            <img src={`https://urbantrustxchange.onrender.com${trade.image_url}`}
               alt="proof" className="w-full rounded-xl object-contain max-h-40 border border-orange-100" />
           </div>
         )}
@@ -134,7 +134,7 @@ function ChatPanel({ trade, onClose }) {
                   }}>
                   {m.message && <p>{m.message}</p>}
                   {m.image_url && (
-                    <img src={`http://localhost:5000${m.image_url}`}
+                    <img src={`https://urbantrustxchange.onrender.com${m.image_url}`}
                       alt="attachment" className="mt-1.5 rounded-lg max-w-full" />
                   )}
                 </div>
@@ -206,7 +206,7 @@ export default function ModeratorPanel() {
   const [activeChat,  setActiveChat]  = useState(null);
 
   const fetchTrades = useCallback(() =>
-    axios.get('http://localhost:5000/api/admin/trades')
+    axios.get('https://urbantrustxchange.onrender.com/api/admin/trades')
       .then(r => setTrades(r.data))
       .catch(() => {}), []);
 

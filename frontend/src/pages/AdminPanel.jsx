@@ -193,7 +193,7 @@ export default function AdminPanel() {
   // ── Verify user toggle ───────────────────────────────────────────────────────
  const changeRole = async (userId, role) => {
   try {
-    await axios.patch(`http://localhost:5000/api/admin/users/${userId}/role`, { role });
+    await axios.patch(`/api/admin/users/${userId}/role`, { role });
     fetchUsers();
   } catch (err) {
     console.error('[AdminPanel] role change failed:', err.message);

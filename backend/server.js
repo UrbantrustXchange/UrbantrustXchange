@@ -32,8 +32,11 @@ app.use(
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
-];
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://warm-shortbread-868f3f.netlify.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(cors({
   origin: (origin, cb) => {
