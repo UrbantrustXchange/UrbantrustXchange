@@ -100,8 +100,6 @@ export default function TradeDetail() {
       })
       .catch(() => {});
     fetchMessages();
-    const interval = setInterval(fetchMessages, 10000);
-    return () => clearInterval(interval);
   }, [id]);
 
   useEffect(() => {
