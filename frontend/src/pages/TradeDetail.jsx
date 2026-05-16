@@ -512,9 +512,8 @@ export default function TradeDetail() {
             </div>
           ) : (
             (Array.isArray(messages) ? messages : []).map(m => {
-              const isMe =
-                m.sender_id?._id === user?.id ||
-                m.sender_role === user?.role;
+              const isMe = m.sender_id?._id === user?.id ||
+             m.sender_id === user?.id;
               return (
                 <div
                   key={m._id}
