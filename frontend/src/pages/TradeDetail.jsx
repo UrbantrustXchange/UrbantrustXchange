@@ -85,7 +85,10 @@ export default function TradeDetail() {
 
   const fetchMessages = () =>
     axios.get(`/api/chat/${id}`)
-      .then(r => setMessages(r.data))
+      .then(r => {
+        const data = Array.isArray(r.data) ? r.data : [];
+        setMessages(data);
+      })
       .catch(() => {});
 
   useEffect(() => {
