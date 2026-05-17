@@ -12,6 +12,7 @@ const SAFETY_NOTICES = [
   'Admin decisions are final after review',
 ];
 
+const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 const TRADE_DURATION = 1800;
 
 function useCountdown(startSeconds) {
@@ -82,15 +83,22 @@ export default function TradeDetail() {
     useCountdown(TRADE_DURATION);
 
   // FIX 1: was fetching /api/trades instead of /api/chat
-  const fetchMessages = () =>
+ const fetchMessages = () =>
     axios.get(`/api/chat/${id}`)
       .then(r => {
-        // FIX 2: guard against non-array response crashing .map()
         const data = Array.isArray(r.data) ? r.data : [];
-        setMessages(data);
+        setMessages(prev => {
+          if (prev.length > 0 && data.length > prev.length) {
+            const lastMsg = data[data.length - 1];
+            const isFromOther = lastMsg.sender_role !== user?.role;
+            if (isFromOther) {
+              notificationSound.play().catch(() => {});
+            }
+          }
+          return data;
+        });
       })
       .catch(() => {});
-
   useEffect(() => {
     axios.get(`/api/trades/${id}`)
       .then(r => {
