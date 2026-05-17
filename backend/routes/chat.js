@@ -7,14 +7,14 @@ const upload = require('../middleware/upload');
 const router = express.Router();
 
 // GET /api/chat/:tradeId — get all messages for a trade
-router.get('/:tradeId', protect, adminOrModerator, async (req, res) => {
+router.get('/:tradeId', protect, async (req, res) => {
   try {
     const trade = await Trade.findById(req.params.tradeId);
     if (!trade) return res.status(404).json({ message: 'Trade not found' });
 
     // Only owner or admin can read
     const isOwner = trade.user_id.toString() === req.user._id.toString();
-    if (!isOwner && req.user.role !== 'admin')
+    if (!isOwner && !['admin', 'moderator'].includes(req.user.role))
       return res.status(403).json({ message: 'Forbidden' });
 
     const messages = await ChatMessage.find({ trade_id: req.params.tradeId })
