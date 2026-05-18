@@ -1,8 +1,2 @@
-/*******************************************
- * Netlify _redirects
- * The following lines are kept here as plain text for Netlify redirect rules.
- * If your editor treats this file as CSS and shows a lcurlyerror, these
- * comments prevent the CSS linter from parsing the redirect rules.
- *******************************************/
 /api/*  https://urbantrustxchange.onrender.com/api/:splat  200
 /*      /index.html                                         200
