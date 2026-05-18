@@ -1,29 +1,51 @@
 // frontend/src/pages/History.jsx
 
-import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import StatusBadge from '../components/StatusBadge';
 
 const LIMIT = 20;
 
-export default function History() {
-  const [trades,     setTrades]     = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [loadingMore,setLoadingMore] = useState(false);
-  const [error,      setError]      = useState('');
-  const [page,       setPage]       = useState(1);
-  const [pagination, setPagination] = useState(null);
+// ── Notification sound (plays when new message arrives while on this page) ────
+const playNotificationSound = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode   = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.4);
+  } catch {}
+};
 
-  // ── Fetch trades ─────────────────────────────────────────────────────────────
+export default function History() {
+  const navigate = useNavigate();
+
+  const [trades,      setTrades]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error,       setError]       = useState('');
+  const [page,        setPage]        = useState(1);
+  const [pagination,  setPagination]  = useState(null);
+
+  // Track message counts per trade to detect new messages
+  const [messageCounts, setMessageCounts] = useState({});
+  const prevMessageCounts = useRef({});
+
+  // ── Fetch trades ──────────────────────────────────────────────────────────────
   const fetchTrades = useCallback(async (pageNum = 1, append = false) => {
     try {
       const { data } = await axios.get('/api/trades', {
         params: { page: pageNum, limit: LIMIT },
       });
 
-      // ✅ Handle both old API (array) and new API (paginated object)
-      // so this page works even if backend hasn't been updated yet
       if (Array.isArray(data)) {
         setTrades(data);
         setPagination(null);
@@ -46,6 +68,46 @@ export default function History() {
     fetchTrades(1, false);
   }, [fetchTrades]);
 
+  // ── Poll for new messages on active (non-paid/rejected) trades ────────────────
+  useEffect(() => {
+    if (trades.length === 0) return;
+
+    const activeTrades = trades.filter(
+      t => !['paid', 'rejected'].includes(t.status)
+    );
+
+    if (activeTrades.length === 0) return;
+
+    const checkMessages = async () => {
+      for (const trade of activeTrades) {
+        try {
+          const { data } = await axios.get(`/api/chat/${trade._id}`);
+          const count = Array.isArray(data) ? data.length : 0;
+
+          setMessageCounts(prev => {
+            const newCounts = { ...prev, [trade._id]: count };
+
+            // Play sound if message count increased and last message is from support
+            const prevCount = prevMessageCounts.current[trade._id] ?? count;
+            if (count > prevCount && Array.isArray(data) && data.length > 0) {
+              const lastMsg = data[data.length - 1];
+              if (lastMsg.sender_role !== 'user') {
+                playNotificationSound();
+              }
+            }
+
+            prevMessageCounts.current = { ...prevMessageCounts.current, [trade._id]: count };
+            return newCounts;
+          });
+        } catch {}
+      }
+    };
+
+    checkMessages();
+    const interval = setInterval(checkMessages, 15000);
+    return () => clearInterval(interval);
+  }, [trades]);
+
   // ── Load more ─────────────────────────────────────────────────────────────────
   const handleLoadMore = () => {
     const nextPage = page + 1;
@@ -54,13 +116,8 @@ export default function History() {
     fetchTrades(nextPage, true);
   };
 
-  const hasMore = pagination
-    ? pagination.page < pagination.pages
-    : false;
-
-  const totalCount = pagination
-    ? pagination.total
-    : trades.length;
+  const hasMore = pagination ? pagination.page < pagination.pages : false;
+  const totalCount = pagination ? pagination.total : trades.length;
 
   // ── Loading skeleton ──────────────────────────────────────────────────────────
   if (loading) {
@@ -203,68 +260,123 @@ export default function History() {
               <span className="text-right">Status</span>
             </div>
 
-            {trades.map((t, i) => (
-              <Link
-                to={`/trade/${t._id}`}
-                key={t._id}
-                className={`
-                  flex items-center justify-between px-4 py-4
-                  hover:bg-orange-50 transition-all duration-150 group
-                  ${i !== trades.length - 1 ? 'border-b border-orange-50' : ''}
-                `}
-              >
-                {/* Left — icon + name */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center
-                               shrink-0 text-base"
-                    style={{
-                      background: t.type === 'btc'
-                        ? 'linear-gradient(135deg, #FEF9C3, #FEF08A)'
-                        : 'linear-gradient(135deg, #ffedd5, #fed7aa)',
-                    }}
-                  >
-                    {t.type === 'btc' ? '₿' : '🎁'}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">
-                      {t.type === 'btc'
-                        ? `Bitcoin · ${t.amount} BTC`
-                        : `${t.card_type} · $${t.amount}`
-                      }
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(t.created_at).toLocaleDateString('en-GH', {
-                        year: 'numeric', month: 'short', day: 'numeric',
-                      })}
-                      <span className="mx-1">·</span>
-                      Rate: {t.rate}
-                    </p>
-                  </div>
-                </div>
+            {trades.map((t, i) => {
+              const msgCount = messageCounts[t._id] || 0;
+              const hasMessages = msgCount > 0;
+              const isActive = !['paid', 'rejected'].includes(t.status);
 
-                {/* Right — payout + status + arrow */}
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900">
-                      GHS {(t.amount * t.rate).toFixed(2)}
-                    </p>
-                    <div className="mt-0.5 flex justify-end">
-                      <StatusBadge status={t.status} />
-                    </div>
-                  </div>
-                  <svg
-                    width="14" height="14" fill="none" stroke="currentColor"
-                    strokeWidth="2.5" viewBox="0 0 24 24"
-                    className="text-gray-300 group-hover:text-brand-400
-                               transition-colors shrink-0"
+              return (
+                <div
+                  key={t._id}
+                  className={`${i !== trades.length - 1 ? 'border-b border-orange-50' : ''}`}
+                >
+                  {/* ── Trade row ── */}
+                  <Link
+                    to={`/trade/${t._id}`}
+                    className="flex items-center justify-between px-4 py-4
+                               hover:bg-orange-50 transition-all duration-150 group"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M9 5l7 7-7 7" />
-                  </svg>
+                    {/* Left — icon + name */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Icon with unread dot */}
+                      <div className="relative shrink-0">
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center
+                                     justify-center text-base"
+                          style={{
+                            background: t.type === 'btc'
+                              ? 'linear-gradient(135deg, #FEF9C3, #FEF08A)'
+                              : 'linear-gradient(135deg, #ffedd5, #fed7aa)',
+                          }}
+                        >
+                          {t.type === 'btc' ? '₿' : '🎁'}
+                        </div>
+                        {/* Unread message indicator */}
+                        {hasMessages && isActive && (
+                          <div
+                            className="absolute -top-1 -right-1 w-4 h-4 rounded-full
+                                       flex items-center justify-center text-white
+                                       text-[9px] font-bold"
+                            style={{ background: '#f97316', border: '2px solid white' }}
+                          >
+                            {msgCount > 9 ? '9+' : msgCount}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {t.type === 'btc'
+                            ? `Bitcoin · ${t.amount} BTC`
+                            : `${t.card_type} · $${t.amount}`
+                          }
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(t.created_at).toLocaleDateString('en-GH', {
+                            year: 'numeric', month: 'short', day: 'numeric',
+                          })}
+                          <span className="mx-1">·</span>
+                          Rate: {t.rate}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right — payout + status + arrow */}
+                    <div className="flex items-center gap-3 shrink-0 ml-4">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-gray-900">
+                          GHS {(t.amount * t.rate).toFixed(2)}
+                        </p>
+                        <div className="mt-0.5 flex justify-end">
+                          <StatusBadge status={t.status} />
+                        </div>
+                      </div>
+                      <svg
+                        width="14" height="14" fill="none" stroke="currentColor"
+                        strokeWidth="2.5" viewBox="0 0 24 24"
+                        className="text-gray-300 group-hover:text-brand-400
+                                   transition-colors shrink-0"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </Link>
+
+                  {/* ── Open Chat button — shown on active trades ── */}
+                  {isActive && (
+                    <div className="px-4 pb-3">
+                      <button
+                        onClick={() => navigate(`/trade/${t._id}`)}
+                        className="flex items-center gap-2 text-xs font-semibold
+                                   px-3 py-2 rounded-xl w-full justify-center
+                                   transition-all active:scale-[0.98]"
+                        style={{
+                          background: hasMessages
+                            ? 'linear-gradient(135deg, #f97316, #ea580c)'
+                            : '#fff7ed',
+                          color:  hasMessages ? 'white' : '#c2410c',
+                          border: hasMessages ? 'none' : '1px solid #fed7aa',
+                          boxShadow: hasMessages
+                            ? '0 2px 8px rgba(249,115,22,0.25)' : 'none',
+                        }}
+                      >
+                        <svg width="13" height="13" fill="none" stroke="currentColor"
+                          strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round"
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03
+                               8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512
+                               15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        {hasMessages
+                          ? `${msgCount} message${msgCount !== 1 ? 's' : ''} — Open Chat`
+                          : 'Open Trade Chat'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
 
           {/* ── Pagination ── */}
